@@ -1,10 +1,11 @@
 package HR.enterprise.service;
 
 import HR.enterprise.dto.EmployeeCreateRequest;
-import HR.enterprise.entity.Employee;
-import HR.enterprise.entity.Role;
-import HR.enterprise.entity.User;
+import HR.enterprise.dto.LeaveRequestDTO;
+import HR.enterprise.dto.LeaveResponseDTO;
+import HR.enterprise.entity.*;
 import HR.enterprise.repository.EmployeeRepository;
+import HR.enterprise.repository.LeaveRepository;
 import HR.enterprise.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,42 +21,65 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final LeaveRepository leaveRepository;
+
 
     @Transactional
-    public Employee CreateEmployee(EmployeeCreateRequest request, String adminUsername) {
+    public Employee createEmployee(EmployeeCreateRequest request, String loggedInUsername) {
 
-        // Step 1: get admin
-        User admin = userRepository.findByUsername(adminUsername)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        // Step 1: get logged-in user
+        User creator = userRepository.findByUsername(loggedInUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Step 2: role check
-        if (admin.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only ADMIN can create employees");
+        // Step 2: only ADMIN or HR allowed
+        if (creator.getRole() != Role.ADMIN && creator.getRole() != Role.HR) {
+            throw new RuntimeException("Unauthorized: Only ADMIN or HR can create users");
         }
 
-        // Step 3: create User (EMPLOYEE role)
+        // Step 3: ROLE VALIDATION 🔥
+
+        // ❌ HR cannot create HR
+        if (creator.getRole() == Role.HR && request.getRole() == Role.HR) {
+            throw new RuntimeException("HR cannot create another HR");
+        }
+
+        // ❌ HR cannot create ADMIN
+        if (creator.getRole() == Role.HR && request.getRole() == Role.ADMIN) {
+            throw new RuntimeException("HR cannot create ADMIN");
+        }
+
+        // ❌ Only ADMIN can create HR
+        if (request.getRole() == Role.HR && creator.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only ADMIN can create HR");
+        }
+
+        // Step 4: check username
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
-            User user = User.builder()
+
+        // Step 5: create User
+        User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.EMPLOYEE)
-                .company(admin.getCompany())
+                .role(request.getRole()) // 🔥 dynamic role
+                .company(creator.getCompany())
                 .build();
 
         userRepository.save(user);
 
+        // Step 6: check email
         if (employeeRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
-        // Step 4: create Employee
+
+        // Step 7: create Employee
         Employee employee = Employee.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .department(request.getDepartment())
                 .salary(request.getSalary())
-                .company(admin.getCompany())
+                .company(creator.getCompany())
                 .user(user)
                 .build();
 
@@ -181,4 +205,6 @@ public class EmployeeService {
         // Step 6: save
         return employeeRepository.save(employee);
     }
+
+
 }

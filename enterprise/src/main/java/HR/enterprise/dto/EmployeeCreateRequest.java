@@ -1,5 +1,6 @@
 package HR.enterprise.dto;
 
+import HR.enterprise.entity.Role;
 import lombok.Data;
 
 @Data
@@ -12,4 +13,5 @@ public class EmployeeCreateRequest {
 
     private String username;
     private String password;
+    private Role role;
 }

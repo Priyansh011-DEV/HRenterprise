@@ -22,13 +22,13 @@ public class EmployeeController {
 
 
     @PostMapping
-    public ResponseEntity<Employee> createEmployee(
+    public ResponseEntity<Employee> CReateEmployee(
             @RequestBody EmployeeCreateRequest request,
             Authentication authentication) {
 
         String username = authentication.getName();
 
-        Employee employee = employeeService.CreateEmployee(request, username);
+        Employee employee = employeeService.createEmployee(request, username);
 
         return ResponseEntity.ok(employee);
     }

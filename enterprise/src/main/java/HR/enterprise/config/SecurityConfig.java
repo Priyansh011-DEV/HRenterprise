@@ -34,28 +34,21 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public endpoints
+                        // 🔓 Public endpoints
                         .requestMatchers("/auth/register", "/auth/login").permitAll()
 
-                        // 🔥 Employee module (STRICT & CLEAR)
+                        // 🔐 Employee module
+                        .requestMatchers(HttpMethod.POST, "/employees").hasAnyRole("ADMIN","HR")
+                        .requestMatchers(HttpMethod.GET, "/employees/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.PUT, "/employees/**").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.DELETE, "/employees/**").hasRole("ADMIN")
 
-                        // CREATE → ADMIN only
-                        .requestMatchers(HttpMethod.POST, "/employees")
-                        .hasAuthority("ROLE_ADMIN")
+                        // 🏖️ Leave module
+                        .requestMatchers(HttpMethod.POST, "/api/leaves/apply").hasRole("EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/leaves/my").hasRole("EMPLOYEE")
+                        .requestMatchers(HttpMethod.PUT, "/api/leaves/**").hasAnyRole("ADMIN","HR")
 
-                        // READ → all roles
-                        .requestMatchers(HttpMethod.GET, "/employees/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_EMPLOYEE")
-
-                        // UPDATE → all roles (service restricts)
-                        .requestMatchers(HttpMethod.PUT, "/employees/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_EMPLOYEE")
-
-                        // DELETE → ADMIN only
-                        .requestMatchers(HttpMethod.DELETE, "/employees/**")
-                        .hasAuthority("ROLE_ADMIN")
-
-                        // Everything else
+                        // 🔒 Everything else
                         .anyRequest().authenticated()
                 )
 
