@@ -507,3 +507,64 @@ function loadEmployees() {
         alert("Failed to load employees ❌ " + err.message);
     });
 }
+/* =========================
+   👤 MY PROFILE
+========================= */
+
+function loadMyProfile() {
+    fetch(`${BASE_URL}/employees/me`, {
+        headers: authHeader()
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Could not load profile");
+        return res.json();
+    })
+    .then(emp => {
+        const container = document.getElementById("myProfile");
+
+        container.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                <div style="
+                    width: 52px; height: 52px;
+                    background: linear-gradient(135deg, #38bdf8, #818cf8);
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-family: 'Syne', sans-serif;
+                    font-size: 22px; font-weight: 800;
+                    color: #080c14;
+                ">
+                    ${emp.name ? emp.name.charAt(0).toUpperCase() : '?'}
+                </div>
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #e2e8f0">${emp.name}</div>
+                    <div style="font-size: 13px; color: #64748b">${emp.email}</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.1); border-radius: 10px; padding: 14px;">
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Department</div>
+                    <div style="font-size: 15px; font-weight: 500; color: #e2e8f0">${emp.department || '—'}</div>
+                </div>
+                <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.1); border-radius: 10px; padding: 14px;">
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Salary</div>
+                    <div style="font-size: 15px; font-weight: 500; color: #34d399">₹${emp.salary?.toLocaleString('en-IN') || '—'}</div>
+                </div>
+                <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.1); border-radius: 10px; padding: 14px;">
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Role</div>
+                    <div style="font-size: 15px; font-weight: 500; color: #818cf8">${emp.user?.role || 'EMPLOYEE'}</div>
+                </div>
+                <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.1); border-radius: 10px; padding: 14px;">
+                    <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Company</div>
+                    <div style="font-size: 15px; font-weight: 500; color: #e2e8f0">${emp.company?.name || '—'}</div>
+                </div>
+            </div>
+        </div>`;
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById("myProfile").innerHTML =
+            `<p class="empty-state">Could not load profile ❌</p>`;
+    });
+}
