@@ -33,4 +33,4 @@ build/
 .vscode/
 
 #Secret\
-src/main/resources/application.yaml
+application.yml
