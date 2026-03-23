@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee Dashboard</title>
+    <link rel="stylesheet" href="style1.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>Employee Dashboard</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+
+    <!-- APPLY LEAVE -->
+    <div class="card">
+        <h3>Apply Leave</h3>
+
+        <select id="leaveType">
+            <option value="SICK">Sick Leave</option>
+            <option value="CASUAL">Casual Leave</option>
+            <option value="PAID">Paid Leave</option>
+        </select>
+
+        <input type="date" id="startDate">
+        <input type="date" id="endDate">
+        <input type="text" id="reason" placeholder="Reason">
+
+        <button onclick="applyLeave()">Submit</button>
+    </div>
+
+    <!-- MY LEAVES -->
+    <div class="card">
+        <h3>My Leaves</h3>
+        <button onclick="loadMyLeaves()">Refresh</button>
+        <div id="leaveList"></div>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+
+<script>
+    checkAuth();
+
+    // optional auto-load
+    loadMyLeaves();
+</script>
+
+</body>
+</html>

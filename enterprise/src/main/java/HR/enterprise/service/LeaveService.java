@@ -7,28 +7,24 @@ import HR.enterprise.repository.EmployeeRepository;
 import HR.enterprise.repository.LeaveRepository;
 import HR.enterprise.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class LeaveService {
+
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
     private final LeaveRepository leaveRepository;
 
-    // ✅ Apply Leave (EMPLOYEE)
+    // ================= APPLY LEAVE =================
     public LeaveResponseDTO applyLeave(LeaveRequestDTO dto, String username) {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (user.getRole() != Role.EMPLOYEE) {
-            throw new RuntimeException("Only EMPLOYEE can apply for leave");
-        }
 
         Employee employee = employeeRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -48,31 +44,66 @@ public class LeaveService {
         return mapToDTO(leave);
     }
 
-    // ✅ Approve / Reject Leave (ADMIN)
+
+    // ================= APPROVE / REJECT =================
     public LeaveResponseDTO updateLeaveStatus(Long leaveId, LeaveStatus status, String username) {
 
-        User admin = userRepository.findByUsername(username)
+        User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (admin.getRole() != Role.ADMIN && admin.getRole() != Role.HR) {
-            throw new RuntimeException("Only ADMIN can approve/reject leave");
-        }
 
         Leave leave = leaveRepository.findById(leaveId)
                 .orElseThrow(() -> new RuntimeException("Leave not found"));
 
-        // Multi-tenant security check
-        if (!leave.getCompany().getId().equals(admin.getCompany().getId())) {
+        // Multi-tenant check
+        if (!leave.getCompany().getId().equals(currentUser.getCompany().getId())) {
             throw new RuntimeException("Unauthorized: Different company");
         }
 
+        // Already processed check
+        if (leave.getStatus() != LeaveStatus.PENDING) {
+            throw new RuntimeException("Leave already processed");
+        }
+
+        Role approverRole = currentUser.getRole();
+        Role leaveOwnerRole = leave.getEmployee().getUser().getRole();
+
+        Long approverEmployeeId = employeeRepository.findByUser(currentUser)
+                .map(Employee::getId)
+                .orElse(null);
+
+        Long leaveEmployeeId = leave.getEmployee().getId();
+
+        // EMPLOYEE cannot approve
+        if (approverRole == Role.EMPLOYEE) {
+            throw new RuntimeException("Employees cannot approve leaves");
+        }
+
+        // Self approval block
+        if (approverEmployeeId != null && approverEmployeeId.equals(leaveEmployeeId)) {
+            throw new RuntimeException("You cannot approve your own leave");
+        }
+
+        // HR logic
+        if (approverRole == Role.HR) {
+            if (leaveOwnerRole != Role.EMPLOYEE) {
+                throw new RuntimeException("HR can only approve EMPLOYEE leaves");
+            }
+        }
+
+        // ADMIN logic -> can approve both HR + EMPLOYEE
+
+        // Final update
         leave.setStatus(status);
+        leave.setApprovedBy(currentUser.getUsername());
+        leave.setApprovedAt(LocalDateTime.now());
+
         leaveRepository.save(leave);
 
         return mapToDTO(leave);
     }
 
-    // ✅ Get My Leaves (EMPLOYEE)
+
+    // ================= GET MY LEAVES =================
     public List<LeaveResponseDTO> getMyLeaves(String username) {
 
         User user = userRepository.findByUsername(username)
@@ -87,23 +118,39 @@ public class LeaveService {
                 .toList();
     }
 
-    // ✅ (Optional) Admin - Get all leaves of company
-    public List<LeaveResponseDTO> getAllCompanyLeaves(String username) {
 
-        User admin = userRepository.findByUsername(username)
+    // ================= GET ALL (ROLE BASED) =================
+    public List<LeaveResponseDTO> getAllLeaves(String username) {
+
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (admin.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only ADMIN can view all leaves");
+        Role role = user.getRole();
+
+        List<Leave> leaves;
+
+        if (role == Role.ADMIN) {
+            // Admin sees all HR + Employee
+            leaves = leaveRepository.findByCompanyId(user.getCompany().getId());
+
+        } else if (role == Role.HR) {
+            // HR sees only EMPLOYEE leaves
+            leaves = leaveRepository.findByCompanyId(user.getCompany().getId())
+                    .stream()
+                    .filter(l -> l.getEmployee().getUser().getRole() == Role.EMPLOYEE)
+                    .toList();
+
+        } else {
+            throw new RuntimeException("Unauthorized");
         }
 
-        return leaveRepository.findByCompanyId(admin.getCompany().getId())
-                .stream()
+        return leaves.stream()
                 .map(this::mapToDTO)
                 .toList();
     }
 
-    // 🔁 Mapping function
+
+    // ================= DTO MAPPER =================
     private LeaveResponseDTO mapToDTO(Leave leave) {
 
         LeaveResponseDTO dto = new LeaveResponseDTO();
@@ -116,6 +163,11 @@ public class LeaveService {
 
         dto.setEmployeeName(
                 leave.getEmployee().getUser().getUsername()
+        );
+
+        // ✅ ADD THIS LINE
+        dto.setEmployeeRole(
+                leave.getEmployee().getUser().getRole().name()
         );
 
         return dto;

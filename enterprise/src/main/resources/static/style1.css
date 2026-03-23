@@ -1,0 +1,89 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    margin: 0;
+}
+
+/* 🔥 Navbar */
+.navbar {
+    background: #020617;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1e293b;
+}
+
+.navbar h2 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+
+/* 🔴 Logout Button */
+.logout-btn {
+    background: #ef4444;
+    border: none;
+    padding: 8px 16px;
+    color: white;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.3s;
+}
+
+.logout-btn:hover {
+    background: #dc2626;
+}
+
+/* 🔥 Container */
+.container {
+    padding: 30px;
+}
+
+/* 🔥 Card UI */
+.card {
+    background: #1e293b;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+/* 🔥 Card Title */
+.card h3 {
+    margin-top: 0;
+    color: #38bdf8;
+}
+
+/* 🔥 Buttons */
+button {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    border: none;
+    padding: 10px 16px;
+    color: white;
+    margin: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+/* 🔥 Data display */
+#employees, #data {
+    margin-top: 15px;
+    background: #020617;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    overflow-x: auto;
+}

@@ -2,82 +2,19 @@
 <html>
 <head>
     <title>Login</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #0f172a;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .box {
-            background: #1e293b;
-            padding: 30px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        input {
-            display: block;
-            margin: 10px auto;
-            padding: 10px;
-            width: 200px;
-            border-radius: 5px;
-            border: none;
-        }
-
-        button {
-            padding: 10px 20px;
-            background: #22c55e;
-            border: none;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #result {
-            margin-top: 15px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div class="box">
-    <h2>Login</h2>
+<div class="login-container">
+    <h2>HR SaaS Login</h2>
 
     <input type="text" id="username" placeholder="Username">
     <input type="password" id="password" placeholder="Password">
 
     <button onclick="login()">Login</button>
-
-    <p id="result"></p>
 </div>
 
-<script>
-    function login() {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-
-        fetch("/auth/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ username, password })
-        })
-        .then(res => res.text())
-        .then(data => {
-            document.getElementById("result").innerText = data;
-        })
-        .catch(err => {
-            document.getElementById("result").innerText = "Error connecting to server";
-        });
-    }
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>

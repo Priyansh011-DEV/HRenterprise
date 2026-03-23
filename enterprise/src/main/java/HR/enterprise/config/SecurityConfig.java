@@ -36,6 +36,18 @@ public class SecurityConfig {
 
                         // 🔓 Public endpoints
                         .requestMatchers("/auth/register", "/auth/login").permitAll()
+                        // 🔓 STATIC FILES (🔥 THIS WAS MISSING)
+                        .requestMatchers(
+                                "/login.html",
+                                "/dashboard.html",
+                                "/employee.html",
+                                "/register.html",
+                                "/app.js",
+                                "/style.css"
+                        ).permitAll()
+
+                        //Permit ALL files
+                        .requestMatchers("/*.css", "/*.js", "/*.html", "/static/**").permitAll()
 
                         // 🔐 Employee module
                         .requestMatchers(HttpMethod.POST, "/employees").hasAnyRole("ADMIN","HR")

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="login-container">
+    <h2>Create Company</h2>
+
+    <input type="text" id="companyName" placeholder="Company Name">
+    <input type="text" id="username" placeholder="Admin Username">
+    <input type="password" id="password" placeholder="Password">
+
+    <button onclick="register()">Register</button>
+
+    <!-- 🔥 Login redirect -->
+    <p style="margin-top: 15px;">
+        Already a user?
+        <span onclick="goToLogin()" style="color:#22c55e; cursor:pointer;">
+            Login
+        </span>
+    </p>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

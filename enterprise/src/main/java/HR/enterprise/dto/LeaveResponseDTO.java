@@ -11,4 +11,5 @@ public class LeaveResponseDTO {
     private LocalDate endDate;
     private String status;
     private String employeeName;
+    private String employeeRole;
 }
