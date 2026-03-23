@@ -5,30 +5,41 @@ const BASE_URL = "http://localhost:8081";
 ========================= */
 
 function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        alert("Please enter username and password");
+        return;
+    }
 
     fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
     })
-    .then(res => res.text())
+    .then(res => {
+        if (!res.ok) throw new Error("Invalid credentials");
+        return res.text();
+    })
     .then(token => {
+        token = token.trim(); // remove any whitespace/newlines
         localStorage.setItem("token", token);
 
         const payload = parseJwt(token);
-        const roles = payload.roles || payload.authorities || [];
+        const roles = payload.roles || [];
 
-        if (roles.includes("ROLE_EMPLOYEE")) {
+        console.log("Logged in. Roles:", roles);
+
+        if (roles.includes("EMPLOYEE")) {
             window.location.href = "employee.html";
         } else {
-            window.location.href = "dashboard.html";
+            window.location.href = "dashboard.html"; // ADMIN or HR
         }
     })
     .catch(err => {
         console.error(err);
-        alert("Login failed ❌");
+        alert("Login failed ❌ " + err.message);
     });
 }
 
@@ -49,6 +60,16 @@ function parseJwt(token) {
     }
 }
 
+function getRoles() {
+    const token = localStorage.getItem("token");
+    if (!token) return [];
+    return parseJwt(token).roles || [];
+}
+
+function isAdmin() { return getRoles().includes("ADMIN"); }
+function isHR()    { return getRoles().includes("HR"); }
+function isEmployee() { return getRoles().includes("EMPLOYEE"); }
+
 /* =========================
    🔒 PAGE PROTECTION
 ========================= */
@@ -61,16 +82,18 @@ function checkAuth() {
         return;
     }
 
-    const payload = parseJwt(token);
-    const roles = payload.roles || payload.authorities || [];
     const page = window.location.pathname;
 
-    if (page.includes("dashboard") && roles.includes("ROLE_EMPLOYEE")) {
+    // Employee trying to access admin/hr dashboard → redirect
+    if (page.includes("dashboard") && isEmployee()) {
         window.location.href = "employee.html";
+        return;
     }
 
-    if (page.includes("employee") && !roles.includes("ROLE_EMPLOYEE")) {
+    // Admin/HR trying to access employee page → redirect
+    if (page.includes("employee") && !isEmployee()) {
         window.location.href = "dashboard.html";
+        return;
     }
 }
 
@@ -80,14 +103,15 @@ function checkAuth() {
 
 function authHeader() {
     return {
-        "Authorization": "Bearer " + localStorage.getItem("token")
+        "Authorization": "Bearer " + localStorage.getItem("token"),
+        "Content-Type": "application/json"
     };
 }
 
 function getStatusColor(status) {
-    if (status === "APPROVED") return "green";
-    if (status === "REJECTED") return "red";
-    return "orange";
+    if (status === "APPROVED") return "#22c55e";
+    if (status === "REJECTED") return "#ef4444";
+    return "#f59e0b"; // PENDING = orange
 }
 
 function disableAllButtons() {
@@ -103,62 +127,72 @@ function enableAllButtons() {
 ========================= */
 
 function applyLeave() {
-
     const data = {
         leaveType: document.getElementById("leaveType").value,
         startDate: document.getElementById("startDate").value,
-        endDate: document.getElementById("endDate").value,
-        reason: document.getElementById("reason").value
+        endDate:   document.getElementById("endDate").value,
+        reason:    document.getElementById("reason").value
     };
+
+    if (!data.startDate || !data.endDate || !data.reason) {
+        alert("Please fill all fields");
+        return;
+    }
 
     disableAllButtons();
 
     fetch(`${BASE_URL}/api/leaves/apply`, {
         method: "POST",
-        headers: {
-            ...authHeader(),
-            "Content-Type": "application/json"
-        },
+        headers: authHeader(),
         body: JSON.stringify(data)
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to apply leave");
+        return res.json();
+    })
     .then(() => {
         alert("Leave Applied ✅");
         loadMyLeaves();
     })
     .catch(err => {
         console.error(err);
-        alert("Error applying leave ❌");
+        alert("Error applying leave ❌ " + err.message);
     })
     .finally(() => enableAllButtons());
 }
 
 function loadMyLeaves() {
-
     fetch(`${BASE_URL}/api/leaves/my`, {
         headers: authHeader()
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Unauthorized or server error");
+        return res.json();
+    })
     .then(data => {
+        const container = document.getElementById("leaveList");
+
+        if (!data || data.length === 0) {
+            container.innerHTML = "<p>No leaves found.</p>";
+            return;
+        }
 
         let html = "";
-
         data.forEach(l => {
             const color = getStatusColor(l.status);
-
             html += `
             <div class="card">
                 <p><b>${l.leaveType}</b></p>
                 <p>${l.startDate} → ${l.endDate}</p>
-                <p>Status: <span style="color:${color}">${l.status}</span></p>
+                <p>Status: <span style="color:${color}; font-weight:bold">${l.status}</span></p>
             </div>`;
         });
 
-        document.getElementById("leaveList").innerHTML = html;
+        container.innerHTML = html;
     })
     .catch(err => {
         console.error(err);
-        alert("Failed to load leaves ❌");
+        alert("Failed to load leaves ❌ " + err.message);
     });
 }
 
@@ -167,15 +201,22 @@ function loadMyLeaves() {
 ========================= */
 
 function loadEmployees() {
-
     fetch(`${BASE_URL}/employees`, {
         headers: authHeader()
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Unauthorized or server error");
+        return res.json();
+    })
     .then(data => {
+        const container = document.getElementById("employees");
+
+        if (!data || data.length === 0) {
+            container.innerHTML = "<p>No employees found.</p>";
+            return;
+        }
 
         let html = "";
-
         data.forEach(emp => {
             html += `
             <div class="card">
@@ -186,95 +227,283 @@ function loadEmployees() {
             </div>`;
         });
 
-        document.getElementById("employees").innerHTML = html;
+        container.innerHTML = html;
     })
     .catch(err => {
         console.error(err);
-        alert("Failed to load employees ❌");
+        alert("Failed to load employees ❌ " + err.message);
     });
 }
 
 function loadLeaves() {
-
     fetch(`${BASE_URL}/api/leaves/all`, {
         headers: authHeader()
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Unauthorized or server error");
+        return res.json();
+    })
     .then(data => {
+        const container = document.getElementById("leaveRequests");
+
+        if (!data || data.length === 0) {
+            container.innerHTML = "<p>No leave requests found.</p>";
+            return;
+        }
 
         let html = "";
 
-        const payload = parseJwt(localStorage.getItem("token"));
-        const roles = payload.roles || payload.authorities || [];
-
-        const isHR = roles.includes("ROLE_HR");
-        const isAdmin = roles.includes("ROLE_ADMIN");
-
         data.forEach(l => {
-
             const color = getStatusColor(l.status);
 
+            // Role-based approve/reject button logic
             let showButtons = false;
 
             if (l.status === "PENDING") {
-                if (isHR && l.employeeRole === "EMPLOYEE") {
+                if (isAdmin()) {
+                    // Admin can approve everyone
                     showButtons = true;
-                }
-                if (isAdmin) {
+                } else if (isHR() && l.employeeRole === "EMPLOYEE") {
+                    // HR can only approve EMPLOYEE leaves
                     showButtons = true;
                 }
             }
 
             html += `
             <div class="card">
-                <p><b>${l.employeeName}</b> (${l.employeeRole})</p>
-                <p>${l.leaveType}</p>
-                <p>${l.startDate} → ${l.endDate}</p>
-                <p>Status: <span style="color:${color}">${l.status}</span></p>
-
+                <p><b>${l.employeeName}</b>
+                   <span style="background:#334155; padding:2px 8px; border-radius:4px; font-size:12px">
+                     ${l.employeeRole}
+                   </span>
+                </p>
+                <p>${l.leaveType} &nbsp;|&nbsp; ${l.startDate} → ${l.endDate}</p>
+                <p>Status: <span style="color:${color}; font-weight:bold">${l.status}</span></p>
                 ${showButtons ? `
-                    <button onclick="approveLeave(${l.id})">Approve</button>
-                    <button onclick="rejectLeave(${l.id})">Reject</button>
+                    <button onclick="approveLeave(${l.id})">✅ Approve</button>
+                    <button onclick="rejectLeave(${l.id})"
+                            style="background: linear-gradient(135deg, #ef4444, #dc2626)">
+                        ❌ Reject
+                    </button>
                 ` : ""}
             </div>`;
         });
 
-        document.getElementById("leaveRequests").innerHTML = html;
+        container.innerHTML = html;
     })
     .catch(err => {
         console.error(err);
-        alert("Failed to load leaves ❌");
+        alert("Failed to load leaves ❌ " + err.message);
     });
 }
 
 /* =========================
-   🏢 ACTIONS (APPROVE / REJECT)
+   ✅ APPROVE / REJECT
 ========================= */
 
 function approveLeave(id) {
+    if (!confirm("Approve this leave?")) return;
     disableAllButtons();
     updateLeaveStatus(id, "APPROVED");
 }
 
 function rejectLeave(id) {
+    if (!confirm("Reject this leave?")) return;
     disableAllButtons();
     updateLeaveStatus(id, "REJECTED");
 }
 
 function updateLeaveStatus(id, status) {
-
     fetch(`${BASE_URL}/api/leaves/${id}/status?status=${status}`, {
         method: "PUT",
         headers: authHeader()
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to update leave");
+        return res.json();
+    })
     .then(() => {
         alert(`Leave ${status} ✅`);
         loadLeaves();
     })
     .catch(err => {
         console.error(err);
-        alert("Error updating leave ❌");
+        alert("Error updating leave ❌ " + err.message);
     })
     .finally(() => enableAllButtons());
+}
+/* =========================
+   🏢 DASHBOARD INIT
+   Shows/hides sections based on role
+========================= */
+
+function initDashboard() {
+    const admin = isAdmin();
+    const hr = isHR();
+
+    // Update navbar title
+    document.getElementById("dashTitle").textContent =
+        admin ? "Admin Dashboard" : "HR Dashboard";
+
+    // Add Employee card — visible to both HR and ADMIN
+    document.getElementById("addEmployeeCard").style.display = (admin || hr) ? "block" : "none";
+
+    // Add HR card — ADMIN only
+    document.getElementById("addHrCard").style.display = admin ? "block" : "none";
+}
+
+
+/* =========================
+   ➕ ADD EMPLOYEE / HR
+========================= */
+
+function addEmployee(role) {
+    // Pick correct input IDs based on role
+    const prefix = role === "HR" ? "hr" : "emp";
+
+    const data = {
+        name:       document.getElementById(`${prefix}Name`).value.trim(),
+        email:      document.getElementById(`${prefix}Email`).value.trim(),
+        department: document.getElementById(`${prefix}Department`).value.trim(),
+        salary:     parseFloat(document.getElementById(`${prefix}Salary`).value),
+        username:   document.getElementById(`${prefix}Username`).value.trim(),
+        password:   document.getElementById(`${prefix}Password`).value.trim(),
+        role:       role
+    };
+
+    // Basic validation
+    if (!data.name || !data.email || !data.department || !data.salary || !data.username || !data.password) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    disableAllButtons();
+
+    fetch(`${BASE_URL}/employees`, {
+        method: "POST",
+        headers: authHeader(),
+        body: JSON.stringify(data)
+    })
+    .then(res => {
+        if (!res.ok) return res.text().then(err => { throw new Error(err) });
+        return res.json();
+    })
+    .then(() => {
+        alert(`${role} added successfully ✅`);
+        clearForm(prefix);
+        loadEmployees(); // refresh list
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Failed to add " + role + " ❌ " + err.message);
+    })
+    .finally(() => enableAllButtons());
+}
+
+function clearForm(prefix) {
+    ["Name", "Email", "Department", "Salary", "Username", "Password"].forEach(field => {
+        const el = document.getElementById(`${prefix}${field}`);
+        if (el) el.value = "";
+    });
+}
+
+
+/* =========================
+   ❌ REMOVE EMPLOYEE / HR
+   HR → can remove EMPLOYEE only
+   ADMIN → can remove both
+========================= */
+
+function removeEmployee(id, role) {
+    const currentUserIsHR = isHR();
+    const currentUserIsAdmin = isAdmin();
+
+    // HR trying to remove HR — block it
+    if (currentUserIsHR && role === "HR") {
+        alert("HR cannot remove another HR ❌");
+        return;
+    }
+
+    if (!confirm(`Remove this ${role}?`)) return;
+
+    disableAllButtons();
+
+    fetch(`${BASE_URL}/employees/${id}`, {
+        method: "DELETE",
+        headers: authHeader()
+    })
+    .then(res => {
+        if (!res.ok) return res.text().then(err => { throw new Error(err) });
+        return res.text();
+    })
+    .then(() => {
+        alert("Removed successfully ✅");
+        loadEmployees();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Failed to remove ❌ " + err.message);
+    })
+    .finally(() => enableAllButtons());
+}
+
+
+/* =========================
+   👥 LOAD EMPLOYEES
+   Override app.js loadEmployees with role-aware version
+========================= */
+
+function loadEmployees() {
+    fetch(`${BASE_URL}/employees`, {
+        headers: authHeader()
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Unauthorized or server error");
+        return res.json();
+    })
+    .then(data => {
+        const container = document.getElementById("employees");
+
+        if (!data || data.length === 0) {
+            container.innerHTML = "<p>No employees found.</p>";
+            return;
+        }
+
+        const admin = isAdmin();
+        const hr = isHR();
+
+        let html = "";
+
+        data.forEach(emp => {
+            const empRole = emp.user?.role || "EMPLOYEE";
+
+            // Decide if remove button should show
+            let showRemove = false;
+            if (admin) showRemove = true; // admin can remove all
+            if (hr && empRole === "EMPLOYEE") showRemove = true; // HR can remove EMPLOYEE only
+
+            html += `
+            <div class="card">
+                <p><b>${emp.name}</b>
+                   <span style="background:#334155; padding:2px 8px; border-radius:4px; font-size:12px; margin-left:8px">
+                     ${empRole}
+                   </span>
+                </p>
+                <p>📧 ${emp.email}</p>
+                <p>🏢 ${emp.department}</p>
+                <p>💰 ₹${emp.salary}</p>
+                ${showRemove ? `
+                    <button onclick="removeEmployee(${emp.id}, '${empRole}')"
+                            style="background: linear-gradient(135deg, #ef4444, #dc2626)">
+                        ❌ Remove
+                    </button>
+                ` : ""}
+            </div>`;
+        });
+
+        container.innerHTML = html;
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Failed to load employees ❌ " + err.message);
+    });
 }

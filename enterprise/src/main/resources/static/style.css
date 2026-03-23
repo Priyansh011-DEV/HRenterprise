@@ -1,33 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Syne:wght@400;600;700;800&display=swap');
+
+/* ========================
+   CSS VARIABLES
+======================== */
+:root {
+    --bg:         #080c14;
+    --surface:    #0d1421;
+    --card:       #111827;
+    --card-hover: #162032;
+    --border:     rgba(99, 179, 237, 0.08);
+    --border-lit: rgba(99, 179, 237, 0.2);
+    --accent:     #38bdf8;
+    --accent2:    #818cf8;
+    --green:      #34d399;
+    --red:        #f87171;
+    --text:       #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim:   #94a3b8;
+    --glow:       rgba(56, 189, 248, 0.15);
+}
+
+/* ========================
+   RESET & BASE
+======================== */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 body {
-    font-family: Arial;
-    background: #0f172a;
-    color: white;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    cursor: none;
+    overflow: hidden;
 }
 
-.login-container {
-    background: #1e293b;
-    padding: 30px;
-    border-radius: 10px;
-    width: 300px;
+/* ========================
+   ANIMATED BACKGROUND GRID
+======================== */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+    animation: gridPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes gridPulse {
+    from { opacity: 0.5; }
+    to   { opacity: 1; }
+}
+
+/* Radial glow behind card */
+body::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: glowPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+    from { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+    to   { opacity: 1;   transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* ========================
+   CUSTOM CURSOR
+======================== */
+.cursor-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 99999;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px var(--accent), 0 0 20px var(--glow);
+}
+
+.cursor-ring {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid rgba(56, 189, 248, 0.5);
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 99998;
+    transform: translate(-50%, -50%);
+    transition: all 0.15s ease;
+}
+
+.cursor-ring.hovering {
+    width: 48px;
+    height: 48px;
+    border-color: var(--accent);
+    background: rgba(56, 189, 248, 0.05);
+}
+
+/* ========================
+   LOGIN / REGISTER CONTAINER
+======================== */
+.login-container,
+.register-container {
+    position: relative;
+    z-index: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 44px;
+    width: 420px;
     text-align: center;
+    box-shadow:
+        0 0 0 1px var(--border),
+        0 24px 80px rgba(0,0,0,0.6),
+        0 0 80px var(--glow);
+    animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    overflow: hidden;
 }
 
-input {
-    width: 90%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: none;
+/* Top glow line */
+.login-container::before,
+.register-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+    opacity: 0.6;
 }
 
-button {
-    padding: 10px 20px;
-    background: #22c55e;
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ========================
+   LOGO / TITLE
+======================== */
+.login-container h2,
+.register-container h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.login-container p,
+.register-container p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+    font-style: italic;
+}
+
+/* ========================
+   INPUTS
+======================== */
+.login-container input,
+.register-container input,
+.login-container select,
+.register-container select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    width: 100%;
+    padding: 12px 16px;
+    margin: 8px 0;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    outline: none;
+    transition: all 0.25s ease;
+    display: block;
+}
+
+.login-container input::placeholder,
+.register-container input::placeholder {
+    color: var(--text-muted);
+}
+
+.login-container input:focus,
+.register-container input:focus,
+.login-container select:focus,
+.register-container select:focus {
+    border-color: var(--accent);
+    background: rgba(56, 189, 248, 0.05);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.login-container select,
+.register-container select {
+    cursor: none;
+    color-scheme: dark;
+}
+
+.login-container select option,
+.register-container select option {
+    background: var(--card);
+}
+
+/* ========================
+   SUBMIT BUTTON
+======================== */
+.login-container button,
+.register-container button {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    width: 100%;
+    padding: 13px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, var(--accent), #0ea5e9);
     border: none;
-    color: white;
-    cursor: pointer;
+    border-radius: 10px;
+    color: #080c14;
+    cursor: none;
+    letter-spacing: 0.4px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-container button::after,
+.register-container button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.login-container button:hover::after,
+.register-container button:hover::after {
+    opacity: 1;
+}
+
+.login-container button:hover,
+.register-container button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(56, 189, 248, 0.35);
+}
+
+.login-container button:active,
+.register-container button:active {
+    transform: translateY(0);
+}
+
+/* ========================
+   FOOTER LINK
+======================== */
+.auth-footer {
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.auth-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+}
+
+.auth-footer a:hover {
+    opacity: 0.7;
+}
+
+/* ========================
+   SCROLLBAR
+======================== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ========================
+   SELECTION
+======================== */
+::selection {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--accent);
 }

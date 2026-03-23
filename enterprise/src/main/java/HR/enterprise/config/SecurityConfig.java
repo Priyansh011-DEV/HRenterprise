@@ -56,9 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/employees/**").hasRole("ADMIN")
 
                         // 🏖️ Leave module
-                        .requestMatchers(HttpMethod.POST, "/api/leaves/apply").hasRole("EMPLOYEE")
-                        .requestMatchers(HttpMethod.GET, "/api/leaves/my").hasRole("EMPLOYEE")
-                        .requestMatchers(HttpMethod.PUT, "/api/leaves/**").hasAnyRole("ADMIN","HR")
+                        .requestMatchers(HttpMethod.POST, "/api/leaves/apply").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/leaves/my").hasAnyRole("ADMIN", "HR", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/leaves/all").hasAnyRole("ADMIN", "HR")
+                        .requestMatchers(HttpMethod.PUT, "/api/leaves/**").hasAnyRole("ADMIN", "HR")
 
                         // 🔒 Everything else
                         .anyRequest().authenticated()

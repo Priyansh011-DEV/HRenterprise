@@ -1,20 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>Login — HR Enterprise</title>
     <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
 </head>
 <body>
 
 <div class="login-container">
-    <h2>HR SaaS Login</h2>
+    <h2>HR Enterprise</h2>
+    <p>Sign in to your workspace</p>
 
     <input type="text" id="username" placeholder="Username">
     <input type="password" id="password" placeholder="Password">
 
-    <button onclick="login()">Login</button>
+    <button onclick="login()">Sign In</button>
+
+    <div class="auth-footer">
+        Don't have an account? <a href="register.html">Register</a>
+    </div>
 </div>
 
 <script src="app.js"></script>
+<script src="cursor.js"></script>
 </body>
 </html>

@@ -3,7 +3,6 @@ package HR.enterprise.service;
 import HR.enterprise.dto.LeaveRequestDTO;
 import HR.enterprise.dto.LeaveResponseDTO;
 import HR.enterprise.entity.*;
-import HR.enterprise.repository.EmployeeRepository;
 import HR.enterprise.repository.LeaveRepository;
 import HR.enterprise.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,18 +15,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LeaveService {
 
-    private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final LeaveRepository leaveRepository;
 
     // ================= APPLY LEAVE =================
+    // Any role (ADMIN, HR, EMPLOYEE) can apply leave
     public LeaveResponseDTO applyLeave(LeaveRequestDTO dto, String username) {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Employee employee = employeeRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         Leave leave = new Leave();
         leave.setLeaveType(dto.getLeaveType());
@@ -35,9 +31,8 @@ public class LeaveService {
         leave.setEndDate(dto.getEndDate());
         leave.setReason(dto.getReason());
         leave.setStatus(LeaveStatus.PENDING);
-
-        leave.setEmployee(employee);
-        leave.setCompany(employee.getCompany());
+        leave.setAppliedBy(user);             // ✅ any role can apply
+        leave.setCompany(user.getCompany());  // ✅ company from user directly
 
         leaveRepository.save(leave);
 
@@ -54,7 +49,7 @@ public class LeaveService {
         Leave leave = leaveRepository.findById(leaveId)
                 .orElseThrow(() -> new RuntimeException("Leave not found"));
 
-        // Multi-tenant check
+        // Multi-tenant check — same company only
         if (!leave.getCompany().getId().equals(currentUser.getCompany().getId())) {
             throw new RuntimeException("Unauthorized: Different company");
         }
@@ -65,34 +60,27 @@ public class LeaveService {
         }
 
         Role approverRole = currentUser.getRole();
-        Role leaveOwnerRole = leave.getEmployee().getUser().getRole();
+        Role leaveOwnerRole = leave.getAppliedBy().getRole(); // ✅ from appliedBy
 
-        Long approverEmployeeId = employeeRepository.findByUser(currentUser)
-                .map(Employee::getId)
-                .orElse(null);
-
-        Long leaveEmployeeId = leave.getEmployee().getId();
-
-        // EMPLOYEE cannot approve
+        // EMPLOYEE cannot approve anyone
         if (approverRole == Role.EMPLOYEE) {
             throw new RuntimeException("Employees cannot approve leaves");
         }
 
         // Self approval block
-        if (approverEmployeeId != null && approverEmployeeId.equals(leaveEmployeeId)) {
+        if (leave.getAppliedBy().getId().equals(currentUser.getId())) {
             throw new RuntimeException("You cannot approve your own leave");
         }
 
-        // HR logic
+        // HR can only approve EMPLOYEE leaves
         if (approverRole == Role.HR) {
             if (leaveOwnerRole != Role.EMPLOYEE) {
                 throw new RuntimeException("HR can only approve EMPLOYEE leaves");
             }
         }
 
-        // ADMIN logic -> can approve both HR + EMPLOYEE
+        // ADMIN can approve both HR + EMPLOYEE leaves (no extra check needed)
 
-        // Final update
         leave.setStatus(status);
         leave.setApprovedBy(currentUser.getUsername());
         leave.setApprovedAt(LocalDateTime.now());
@@ -109,10 +97,7 @@ public class LeaveService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Employee employee = employeeRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-
-        return leaveRepository.findByEmployeeId(employee.getId())
+        return leaveRepository.findByAppliedBy(user) // ✅ directly by user
                 .stream()
                 .map(this::mapToDTO)
                 .toList();
@@ -126,18 +111,17 @@ public class LeaveService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Role role = user.getRole();
-
         List<Leave> leaves;
 
         if (role == Role.ADMIN) {
-            // Admin sees all HR + Employee
+            // Admin sees ALL leaves in the company (HR + EMPLOYEE)
             leaves = leaveRepository.findByCompanyId(user.getCompany().getId());
 
         } else if (role == Role.HR) {
             // HR sees only EMPLOYEE leaves
             leaves = leaveRepository.findByCompanyId(user.getCompany().getId())
                     .stream()
-                    .filter(l -> l.getEmployee().getUser().getRole() == Role.EMPLOYEE)
+                    .filter(l -> l.getAppliedBy().getRole() == Role.EMPLOYEE) // ✅
                     .toList();
 
         } else {
@@ -160,15 +144,8 @@ public class LeaveService {
         dto.setStartDate(leave.getStartDate());
         dto.setEndDate(leave.getEndDate());
         dto.setStatus(leave.getStatus().name());
-
-        dto.setEmployeeName(
-                leave.getEmployee().getUser().getUsername()
-        );
-
-        // ✅ ADD THIS LINE
-        dto.setEmployeeRole(
-                leave.getEmployee().getUser().getRole().name()
-        );
+        dto.setEmployeeName(leave.getAppliedBy().getUsername()); // ✅
+        dto.setEmployeeRole(leave.getAppliedBy().getRole().name()); // ✅
 
         return dto;
     }

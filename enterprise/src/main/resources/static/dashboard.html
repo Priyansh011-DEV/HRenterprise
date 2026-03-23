@@ -3,11 +3,12 @@
 <head>
     <title>Dashboard</title>
     <link rel="stylesheet" href="style1.css">
+    <meta charset="UTF-8">
 </head>
 <body>
 
 <div class="navbar">
-    <h2 id="title">Admin / HR Dashboard</h2>
+    <h2 id="dashTitle">Admin / HR Dashboard</h2>
     <button class="logout-btn" onclick="logout()">Logout</button>
 </div>
 
@@ -16,18 +17,39 @@
     <!-- APPLY LEAVE -->
     <div class="card">
         <h3>Apply Leave</h3>
-
         <select id="leaveType">
             <option value="SICK">Sick Leave</option>
             <option value="CASUAL">Casual Leave</option>
             <option value="PAID">Paid Leave</option>
         </select>
-
         <input type="date" id="startDate">
         <input type="date" id="endDate">
         <input type="text" id="reason" placeholder="Reason">
-
         <button onclick="applyLeave()">Submit</button>
+    </div>
+
+    <!-- ADD EMPLOYEE (HR + ADMIN) -->
+    <div class="card" id="addEmployeeCard">
+        <h3>Add Employee</h3>
+        <input type="text" id="empName" placeholder="Full Name">
+        <input type="email" id="empEmail" placeholder="Email">
+        <input type="text" id="empDepartment" placeholder="Department">
+        <input type="number" id="empSalary" placeholder="Salary">
+        <input type="text" id="empUsername" placeholder="Username">
+        <input type="password" id="empPassword" placeholder="Password">
+        <button onclick="addEmployee('EMPLOYEE')">Add Employee</button>
+    </div>
+
+    <!-- ADD HR (ADMIN ONLY) -->
+    <div class="card" id="addHrCard" style="display:none">
+        <h3>Add HR</h3>
+        <input type="text" id="hrName" placeholder="Full Name">
+        <input type="email" id="hrEmail" placeholder="Email">
+        <input type="text" id="hrDepartment" placeholder="Department">
+        <input type="number" id="hrSalary" placeholder="Salary">
+        <input type="text" id="hrUsername" placeholder="Username">
+        <input type="password" id="hrPassword" placeholder="Password">
+        <button onclick="addEmployee('HR')">Add HR</button>
     </div>
 
     <!-- EMPLOYEE LIST -->
@@ -47,11 +69,12 @@
 </div>
 
 <script src="app.js"></script>
+<script src="cursor.js"></script>
+
 
 <script>
     checkAuth();
-
-    // optional auto-load
+    initDashboard();
     loadEmployees();
     loadLeaves();
 </script>
